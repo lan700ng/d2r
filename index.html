@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>USD to IDR Hill Climb</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <!-- Local Matter.js file -->
+    <script src="matter.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
         
@@ -280,11 +281,11 @@
 
     <div id="toggles">
         <button id="nitroBtn" class="toggle-btn" title="Gunakan Nitro!">
-            <div class="nitro-inner">🚀</div>
+            <div class="nitro-inner">Ⓝ</div>
         </button>
-        <button id="themeToggle" class="toggle-btn" title="Ganti Tema">🌓</button>
-        <button id="godModeToggle" class="toggle-btn" title="Mode Kebal">💀</button>
-        <button id="restartToggle" class="toggle-btn" title="Mulai Ulang">🔄</button>
+        <button id="themeToggle" class="toggle-btn" title="Ganti Tema">☉</button>
+        <button id="godModeToggle" class="toggle-btn" title="Mode Kebal" style="opacity: 0.5;">✦</button>
+        <button id="restartToggle" class="toggle-btn" title="Mulai Ulang">⌧</button>
     </div>
 
     <div id="touchLeft" class="touch-zone"></div>
@@ -435,7 +436,8 @@
         });
         
         document.getElementById('godModeToggle').addEventListener('click', (e) => {
-            state.noDeathMode = !state.noDeathMode; e.target.innerText = state.noDeathMode ? '😇' : '💀';
+            state.noDeathMode = !state.noDeathMode;
+            e.target.style.opacity = state.noDeathMode ? '1.0' : '0.5';
         });
 
         document.getElementById('restartToggle').addEventListener('click', () => {
@@ -466,9 +468,20 @@
         // 4. API & TERRAIN GENERATOR
         // ==========================================
         async function fetchRate() {
+            // Instantly skip fetch and trigger offline rate if navigator reports offline status
+            if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                state.isOnline = false;
+                state.baseRate = Math.floor(Math.random() * (30000 - 10000 + 1)) + 10000;
+                updateUIDate();
+                return;
+            }
+
             try {
-                const fetchPromise = fetch('https://open.er-api.com/v6/latest/USD');
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
+                // Cache-busting parameter and no-store headers used to prevent offline refresh glitches
+                const fetchPromise = fetch('https://open.er-api.com/v6/latest/USD?_t=' + Date.now(), {
+                    cache: 'no-store'
+                });
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1500));
                 
                 const response = await Promise.race([fetchPromise, timeoutPromise]);
                 if (response.ok) {
@@ -1089,7 +1102,7 @@
         updateUIDate();
         Promise.race([
             fetchRate(),
-            new Promise(res => setTimeout(res, 2500))
+            new Promise(res => setTimeout(res, 2000))
         ]).then(startGame).catch(startGame);
     </script>
 </body>
