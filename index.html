@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>USD to IDR Hill Climb</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
+        
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #202124;
+            --text-muted: #5f6368;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --card-border: #dadce0;
+            --grid-color: #f1f3f4;
+            --tab-active-bg: #e8f0fe;
+            --tab-active-text: #1a73e8;
+            --nitro-color: #ea4335;
+        }
+
+        body.dark-theme {
+            --bg-color: #202124;
+            --text-main: #e8eaed;
+            --text-muted: #9aa0a6;
+            --card-bg: rgba(32, 33, 36, 0.95);
+            --card-border: #3c4043;
+            --grid-color: #3c4043;
+            --tab-active-bg: rgba(138, 180, 248, 0.2);
+            --tab-active-text: #8ab4f8;
+            --nitro-color: #ff9800;
+        }
+
+        body, html {
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden;
+            background-color: var(--bg-color); 
+            font-family: 'Google Sans', Arial, sans-serif;
+            touch-action: none; 
+            user-select: none; 
+            -webkit-user-select: none;
+            transition: background-color 0.3s;
+        }
+        
+        #gameCanvas { 
+            display: block; 
+            width: 100%; 
+            height: 100%; 
+        }
+        
+        /* UI Panel */
+        #ui {
+            position: absolute; 
+            top: 15px; 
+            left: 15px; 
+            pointer-events: none; 
+            z-index: 10;
+            background: var(--card-bg); 
+            padding: 20px; 
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--card-border); 
+            transition: all 0.3s; 
+            width: 340px;
+        }
+        .subtitle { 
+            color: var(--text-muted); 
+            font-size: 13px; 
+            margin-bottom: 8px; 
+        }
+        .price-container { 
+            display: flex; 
+            align-items: baseline; 
+            gap: 6px; 
+            margin-bottom: 4px; 
+        }
+        .price { 
+            color: var(--text-main); 
+            font-size: 32px; 
+            font-weight: 500; 
+            letter-spacing: -0.5px;
+        }
+        .currency { 
+            color: var(--text-main); 
+            font-size: 20px; 
+            font-weight: 500; 
+        }
+        .disclaimer { 
+            color: var(--text-muted); 
+            font-size: 11px; 
+            margin-bottom: 15px; 
+            display: flex; 
+            align-items: center; 
+            gap: 6px;
+        }
+        
+        .status-dot { 
+            width: 8px; 
+            height: 8px; 
+            border-radius: 50%; 
+            display: inline-block; 
+        }
+        .status-online { 
+            background-color: #137333; 
+            box-shadow: 0 0 5px #137333; 
+        }
+        .status-offline { 
+            background-color: #ea4335; 
+            box-shadow: 0 0 5px #ea4335; 
+        }
+
+        .tabs {
+            display: flex; 
+            justify-content: space-between; 
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 10px; 
+            margin-bottom: 15px;
+        }
+        .tabs span { 
+            color: var(--text-muted); 
+            font-size: 12px; 
+            font-weight: 500; 
+            padding: 4px 10px; 
+            border-radius: 12px; 
+        }
+        .tabs span.active { 
+            background: var(--tab-active-bg); 
+            color: var(--tab-active-text); 
+        }
+
+        .converter-box {
+            border: 1px solid var(--card-border); 
+            border-radius: 6px;
+            padding: 12px; 
+            margin-bottom: 8px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+        }
+        .conv-val { 
+            color: var(--text-main); 
+            font-size: 16px; 
+            font-weight: 500; 
+        }
+        .conv-label { 
+            color: var(--text-muted); 
+            font-size: 13px; 
+        }
+
+        .more-btn {
+            background: var(--card-border); 
+            color: var(--text-main); 
+            font-size: 13px; 
+            font-weight: 500;
+            text-align: center; 
+            padding: 10px; 
+            border-radius: 20px; 
+            margin-top: 10px; 
+            opacity: 0.8;
+        }
+
+        /* Control Toggles */
+        #toggles {
+            position: absolute; 
+            top: 15px; 
+            right: 15px; 
+            z-index: 15;
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            align-items: flex-end;
+        }
+        .toggle-btn {
+            background: var(--card-bg); 
+            border: 1px solid var(--card-border);
+            color: var(--text-main); 
+            font-size: 20px; 
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            backdrop-filter: blur(5px);
+            width: 45px; 
+            height: 45px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.3s;
+            padding: 0; 
+            margin: 0; 
+            box-sizing: border-box;
+        }
+
+        /* Nitro Button Custom Styles */
+        #nitroBtn {
+            font-size: 18px;
+            transition: box-shadow 0.2s, background 0.1s;
+        }
+        .nitro-inner {
+            width: 37px; 
+            height: 37px; 
+            border-radius: 50%;
+            background: var(--card-bg); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: filter 0.3s, opacity 0.3s;
+        }
+        #nitroBtn.cooldown .nitro-inner {
+            filter: blur(1px); 
+            opacity: 0.6;
+        }
+
+        /* Touch Control Areas */
+        .touch-zone {
+            position: absolute; 
+            top: 0; 
+            bottom: 0; 
+            width: 50%; 
+            z-index: 5;
+            background: rgba(0,0,0,0); 
+        }
+        #touchLeft { left: 0; }
+        #touchRight { right: 0; }
+
+        #flash {
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(255, 0, 0, 0.5); 
+            z-index: 20; 
+            opacity: 0; 
+            pointer-events: none; 
+            transition: opacity 0.2s;
+        }
+
+        @media (max-width: 600px) {
+            #ui { top: 10px; left: 10px; right: 10px; width: auto; padding: 15px; }
+            .price { font-size: 26px; }
+            #toggles { top: auto; bottom: 20px; right: 20px; flex-direction: row; }
+        }
+    </style>
+</head>
+<body class="dark-theme">
+    <audio id="bgm" src="bgm.m4a" loop preload="auto"></audio>
+    <div id="flash"></div>
+
+    <div id="ui">
+        <div class="subtitle">1 Dolar Amerika Serikat sama dengan</div>
+        <div class="price-container">
+            <div class="price" id="priceDisplay">Memuat...</div>
+            <div class="currency">Rupiah Indonesia</div>
+        </div>
+        <div class="disclaimer">
+            <span id="statusDot" class="status-dot status-offline"></span>
+            <span id="dateDisplay">Memuat status...</span>
+        </div>
+        
+        <div class="tabs">
+            <span>1HR</span><span>5HR</span><span class="active">1BLN</span><span>1TH</span><span>5TH</span><span>Maks</span>
+        </div>
+
+        <div class="converter-box">
+            <span class="conv-val">1</span>
+            <span class="conv-label">Dolar Amerika Serikat ▾</span>
+        </div>
+        <div class="converter-box">
+            <span class="conv-val" id="convIDR">0.00</span>
+            <span class="conv-label">Rupiah Indonesia ▾</span>
+        </div>
+
+        <div class="more-btn">Selengkapnya tentang USD/IDR ></div>
+    </div>
+
+    <div id="toggles">
+        <button id="nitroBtn" class="toggle-btn" title="Gunakan Nitro!">
+            <div class="nitro-inner">🚀</div>
+        </button>
+        <button id="themeToggle" class="toggle-btn" title="Ganti Tema">🌓</button>
+        <button id="godModeToggle" class="toggle-btn" title="Mode Kebal">💀</button>
+        <button id="restartToggle" class="toggle-btn" title="Mulai Ulang">🔄</button>
+    </div>
+
+    <div id="touchLeft" class="touch-zone"></div>
+    <div id="touchRight" class="touch-zone"></div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // ==========================================
+        // 1. GAME CONFIGURATION
+        // ==========================================
+        const GAME_CONFIG = {
+            gravity: 0.33,            
+            terrainFriction: 15,     
+            terrainFrictionStatic: 20.0, 
+            terrainSegmentWidth: 80,  
+            pixelsPerIDR: 0.5,        
+            
+            car: {
+                width: 130, height: 28,   
+                wheelRadius: 30,          
+                density: 0.005,       
+                wheelDensity: 0.035,      
+                suspensionStiffness: 0.15, 
+                suspensionDamping: 0.05,   
+                armStiffness: 1.0     
+            },
+            
+            engine: {
+                maxSpeed: 100,        
+                driveTorque: 10.0,    
+                flipTorque: 6.4,     
+                downforce: 0.1       
+            },
+
+            nitro: {
+                powerMultiplier: 2.5, 
+                durationMs: 3000,     
+                cooldownMs: 20000,
+                autoThrustForce: 0.15,
+                rotationalTorque: 0.8
+            },
+
+            camera: {
+                baseZoom: 0.60,
+                maxZoomOut: 0.30,     
+                zoomSpeed: 0.05,
+                panSpeed: 0.15        
+            },
+
+            visuals: {
+                colorUp: [129, 201, 149],
+                colorDown: [234, 67, 53],
+                colorTransitionSpeed: 0.05,
+                antennaFlex: 0.8,        
+                neckFlex: 0.6
+            },
+
+            terrain: {
+                difficultyMultiplier: 0.005, 
+                dropChance: 0.02,            
+                dropDuration: 5              
+            }
+        };
+
+        // ==========================================
+        // 2. INITIALIZATION
+        // ==========================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = window.innerWidth; 
+        let height = window.innerHeight;
+        canvas.width = width; 
+        canvas.height = height;
+
+        window.addEventListener('resize', () => {
+            width = window.innerWidth; 
+            height = window.innerHeight;
+            canvas.width = width; 
+            canvas.height = height;
+        });
+
+        // Global variables for Matter.js
+        let Engine, Runner, Bodies, Body, Composite, Constraint, Events;
+        let engine, world;
+
+        const idrFormatter = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        let state = {
+            isOnline: false,
+            baseRate: 16000, 
+            
+            firstX: 0, firstY: 0, firstPrice: 16000,
+            lastX: 0, lastY: 0, lastPrice: 16000,
+            
+            minPrice: 16000, maxPrice: 16000,
+            terrainChunks: [], dropCounter: 0,
+            
+            noDeathMode: false, isDark: true, audioStarted: false,
+            input: { gas: false, brake: false },
+            holdDuration: 0, headSway: 0,
+            antennaAngle: 0, antennaVel: 0, lastCarVelX: 0,
+            camX: 0, camY: 0, currentZoom: GAME_CONFIG.camera.baseZoom,
+            
+            currentTerrainColor: [...GAME_CONFIG.visuals.colorUp],
+            currentCarColor: [...GAME_CONFIG.visuals.colorDown],
+
+            nitroEndTime: 0,
+            nitroCooldownEnd: 0
+        };
+
+        let car = { composite: null, body: null, wheelA: null, wheelB: null, head: null };
+        let canvasTheme = {};
+
+        // Sync UI date
+        function updateUIDate() {
+            const now = new Date();
+            const options = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
+            const dateDisplayEl = document.getElementById('dateDisplay');
+            if (dateDisplayEl) {
+                dateDisplayEl.innerText = `${now.toLocaleDateString('id-ID', options)} · Dari Google · Penafian`;
+            }
+            
+            const dot = document.getElementById('statusDot');
+            if (dot) {
+                dot.className = state.isOnline ? 'status-dot status-online' : 'status-dot status-offline';
+            }
+        }
+        setInterval(updateUIDate, 1000);
+
+        // ==========================================
+        // 3. UI & TOGGLES
+        // ==========================================
+        const updateCanvasTheme = () => {
+            const style = getComputedStyle(document.body);
+            canvasTheme = {
+                bg: style.getPropertyValue('--bg-color').trim(),
+                grid: style.getPropertyValue('--grid-color').trim(),
+                text: style.getPropertyValue('--text-muted').trim(),
+                nitroLine: style.getPropertyValue('--nitro-color').trim()
+            };
+        };
+
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            state.isDark = !state.isDark; 
+            document.body.classList.toggle('dark-theme', state.isDark); 
+            updateCanvasTheme();
+        });
+        
+        document.getElementById('godModeToggle').addEventListener('click', (e) => {
+            state.noDeathMode = !state.noDeathMode; e.target.innerText = state.noDeathMode ? '😇' : '💀';
+        });
+
+        document.getElementById('restartToggle').addEventListener('click', () => {
+            dieAndReset();
+        });
+
+        // Nitro actions
+        const nitroBtn = document.getElementById('nitroBtn');
+        const activateNitro = (e) => {
+            e.preventDefault(); e.stopPropagation(); 
+            const now = Date.now();
+            if (now >= state.nitroCooldownEnd) {
+                state.nitroEndTime = now + GAME_CONFIG.nitro.durationMs;
+                state.nitroCooldownEnd = now + GAME_CONFIG.nitro.cooldownMs;
+                initAudio();
+            }
+        };
+        nitroBtn.addEventListener('touchstart', activateNitro, {passive: false});
+        nitroBtn.addEventListener('mousedown', activateNitro);
+
+        updateCanvasTheme();
+
+        const initAudio = () => {
+            if (!state.audioStarted) { document.getElementById('bgm').play().catch(()=>{}); state.audioStarted = true; }
+        };
+
+        // ==========================================
+        // 4. API & TERRAIN GENERATOR
+        // ==========================================
+        async function fetchRate() {
+            try {
+                const fetchPromise = fetch('https://open.er-api.com/v6/latest/USD');
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000));
+                
+                const response = await Promise.race([fetchPromise, timeoutPromise]);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data?.rates?.IDR) {
+                        state.baseRate = data.rates.IDR;
+                        state.isOnline = true;
+                    }
+                } else throw new Error();
+            } catch (e) { 
+                // Offline fallback
+                state.isOnline = false;
+                state.baseRate = Math.floor(Math.random() * (30000 - 10000 + 1)) + 10000;
+            }
+            updateUIDate();
+        }
+
+        function createTerrainSegment(x1, y1, x2, y2) {
+            const dx = x2 - x1; 
+            const dy = y2 - y1;
+            const length = Math.sqrt(dx*dx + dy*dy); 
+            const angle = Math.atan2(dy, dx);
+            const rectThickness = 80;
+            
+            const nx = -Math.sin(angle); 
+            const ny = Math.cos(angle);
+            const midX = (x1 + x2) / 2 + nx * (rectThickness / 2);
+            const midY = (y1 + y2) / 2 + ny * (rectThickness / 2);
+
+            const tOpts = { 
+                isStatic: true, 
+                angle: angle, 
+                friction: GAME_CONFIG.terrainFriction, 
+                frictionStatic: GAME_CONFIG.terrainFrictionStatic, 
+                restitution: 0.0, 
+                label: 'terrain', 
+                render: { visible: false }
+            };
+
+            const rect = Bodies.rectangle(midX, midY, length, rectThickness, tOpts);
+            const joint = Bodies.circle(x2, y2 + (rectThickness/2), rectThickness/2, tOpts);
+            Composite.add(world, [rect, joint]);
+        }
+
+        function generateTerrain(upToX) {
+            while (state.lastX < upToX) {
+                let distMult = Math.abs(state.lastX) * GAME_CONFIG.terrain.difficultyMultiplier;
+                let change = 0;
+
+                if (state.dropCounter > 0) {
+                    change = -(Math.random() * 400 + 200 + distMult); 
+                    state.dropCounter--;
+                } else {
+                    if (Math.random() < GAME_CONFIG.terrain.dropChance) {
+                        state.dropCounter = GAME_CONFIG.terrain.dropDuration;
+                        change = -(Math.random() * 400 + 200 + distMult);
+                    } else {
+                        let isUp = Math.random() < 0.8; 
+                        change = isUp ? (Math.random() * 150 + 50 + distMult) : -(Math.random() * 100 + 50);
+                    }
+                }
+
+                state.lastPrice += change;
+                if (state.lastPrice < state.minPrice) state.minPrice = state.lastPrice;
+                if (state.lastPrice > state.maxPrice) state.maxPrice = state.lastPrice;
+
+                const nextX = state.lastX + GAME_CONFIG.terrainSegmentWidth;
+                const nextY = -(state.lastPrice - state.baseRate) * GAME_CONFIG.pixelsPerIDR; 
+
+                createTerrainSegment(state.lastX, state.lastY, nextX, nextY);
+                state.terrainChunks.push({ x: nextX, y: nextY, price: state.lastPrice });
+                state.lastX = nextX; 
+                state.lastY = nextY;
+            }
+        }
+
+        function generateTerrainBackward(downToX) {
+            while (state.firstX > downToX) {
+                const prevX = state.firstX - GAME_CONFIG.terrainSegmentWidth;
+                let distMult = Math.abs(prevX) * GAME_CONFIG.terrain.difficultyMultiplier;
+                
+                let change = (Math.random() * 150 + 50 + distMult);
+                if (Math.random() < 0.5) change = -change; 
+                
+                state.firstPrice -= change; 
+                const prevY = -(state.firstPrice - state.baseRate) * GAME_CONFIG.pixelsPerIDR;
+
+                createTerrainSegment(prevX, prevY, state.firstX, state.firstY);
+                state.terrainChunks.unshift({ x: prevX, y: prevY, price: state.firstPrice });
+                state.firstX = prevX; 
+                state.firstY = prevY;
+            }
+        }
+
+        // ==========================================
+        // 5. VEHICLE BUILDER & RESET MECHANICS
+        // ==========================================
+        function createCar(x, y) {
+            if (car.composite) Composite.remove(world, car.composite);
+            car.composite = Composite.create();
+            
+            const carGroup = -1; 
+            const cfg = GAME_CONFIG.car;
+            
+            car.body = Bodies.rectangle(x, y, cfg.width, cfg.height, { 
+                collisionFilter: { group: carGroup }, density: cfg.density, friction: 0.1, label: 'chassis'
+            });
+            
+            const wheelOpts = { 
+                collisionFilter: { group: carGroup }, 
+                friction: GAME_CONFIG.terrainFriction, 
+                frictionStatic: GAME_CONFIG.terrainFrictionStatic, 
+                density: cfg.wheelDensity, 
+                restitution: 0.0 
+            };
+            
+            const wOffset = cfg.width/2 - 15; 
+            car.wheelA = Bodies.circle(x - wOffset, y + 20, cfg.wheelRadius, wheelOpts);
+            car.wheelB = Bodies.circle(x + wOffset, y + 20, cfg.wheelRadius, wheelOpts);
+            
+            car.head = Bodies.circle(x, y - 40, 15, { isSensor: true, collisionFilter: { group: carGroup }, label: 'head' });
+
+            const shockA = Constraint.create({ bodyA: car.body, pointA: { x: -wOffset, y: -10 }, bodyB: car.wheelA, stiffness: cfg.suspensionStiffness, damping: cfg.suspensionDamping, length: 45 });
+            const shockB = Constraint.create({ bodyA: car.body, pointA: { x: wOffset, y: -10 }, bodyB: car.wheelB, stiffness: cfg.suspensionStiffness, damping: cfg.suspensionDamping, length: 45 });
+            
+            const armA = Constraint.create({ bodyA: car.body, pointA: { x: 1000, y: 20 }, bodyB: car.wheelA, stiffness: cfg.armStiffness, length: 1000 + wOffset });
+            const armB = Constraint.create({ bodyA: car.body, pointA: { x: -1000, y: 20 }, bodyB: car.wheelB, stiffness: cfg.armStiffness, length: 1000 + wOffset });
+            
+            Composite.add(car.composite, [car.body, car.wheelA, car.wheelB, car.head, shockA, armA, shockB, armB]);
+            Composite.add(world, car.composite);
+            
+            state.camX = x; 
+            state.camY = y;
+        }
+
+        async function dieAndReset() {
+            if (state.isResetting || typeof Matter === 'undefined') return;
+            state.isResetting = true;
+
+            const flash = document.getElementById('flash');
+            flash.style.opacity = 1; 
+            setTimeout(() => flash.style.opacity = 0, 300);
+
+            try { await Promise.race([fetchRate(), new Promise(r => setTimeout(r, 1000))]); } catch(e) {}
+
+            const terrains = Composite.allBodies(world).filter(b => b.label === 'terrain');
+            Composite.remove(world, terrains);
+            state.terrainChunks = [];
+            
+            state.lastX = -width; 
+            state.lastY = 0; 
+            state.lastPrice = state.baseRate; 
+            state.firstX = -width; 
+            state.firstY = 0; 
+            state.firstPrice = state.baseRate;
+            state.minPrice = state.baseRate; 
+            state.maxPrice = state.baseRate;
+            
+            state.nitroEndTime = 0; 
+            state.nitroCooldownEnd = 0;
+            
+            state.terrainChunks.push({ x: -width, y: 0, price: state.baseRate });
+            createTerrainSegment(-width, 0, width * 1.5, 0);
+            state.terrainChunks.push({ x: width * 1.5, y: 0, price: state.baseRate });
+            
+            state.lastX = width * 1.5; 
+            state.lastY = 0;
+            
+            generateTerrain(width * 3); 
+            createCar(0, -800);
+            
+            state.isResetting = false;
+        }
+
+        // ==========================================
+        // 6. CONTROLS INPUT HANDLER
+        // ==========================================
+        const handleInput = (e, isDown) => {
+            if (e.target && (e.target.closest('#toggles') || e.target.closest('#nitroBtn'))) return;
+            if (isDown) initAudio();
+            
+            if (e.type.includes('touch')) {
+                e.preventDefault();
+                state.input.gas = false; 
+                state.input.brake = false;
+                for (let i = 0; i < e.touches.length; i++) {
+                    if (e.touches[i].clientX > width / 2) state.input.gas = true;
+                    else state.input.brake = true;
+                }
+            } else if (e.type.includes('key')) {
+                if(e.key === 'ArrowRight' || e.key === 'd') state.input.gas = isDown;
+                if(e.key === 'ArrowLeft' || e.key === 'a') state.input.brake = isDown;
+            }
+        };
+
+        window.addEventListener('touchstart', e => handleInput(e, true), {passive: false});
+        window.addEventListener('touchmove', e => handleInput(e, true), {passive: false});
+        window.addEventListener('touchend', e => handleInput(e, false), {passive: false});
+        window.addEventListener('keydown', e => handleInput(e, true));
+        window.addEventListener('keyup', e => handleInput(e, false));
+
+        function updateUI() {
+            if (!car.body || state.terrainChunks.length === 0 || state.isResetting) return 0;
+            let currentPrice = state.baseRate; 
+            let terrainY = car.body.position.y;
+            
+            let carChunkIdx = 0;
+            for (let i = 0; i < state.terrainChunks.length - 1; i++) {
+                if (car.body.position.x >= state.terrainChunks[i].x && car.body.position.x <= state.terrainChunks[i+1].x) {
+                    const t = (car.body.position.x - state.terrainChunks[i].x) / (state.terrainChunks[i+1].x - state.terrainChunks[i].x);
+                    currentPrice = state.terrainChunks[i].price + t * (state.terrainChunks[i+1].price - state.terrainChunks[i].price);
+                    terrainY = state.terrainChunks[i].y + t * (state.terrainChunks[i+1].y - state.terrainChunks[i].y);
+                    carChunkIdx = i;
+                    break;
+                }
+            }
+
+            let targetColor = GAME_CONFIG.visuals.colorUp;
+            if (carChunkIdx + 2 < state.terrainChunks.length) {
+                if (state.terrainChunks[carChunkIdx + 2].price < state.terrainChunks[carChunkIdx].price) {
+                    targetColor = GAME_CONFIG.visuals.colorDown;
+                }
+            }
+
+            state.currentTerrainColor[0] += (targetColor[0] - state.currentTerrainColor[0]) * GAME_CONFIG.visuals.colorTransitionSpeed;
+            state.currentTerrainColor[1] += (targetColor[1] - state.currentTerrainColor[1]) * GAME_CONFIG.visuals.colorTransitionSpeed;
+            state.currentTerrainColor[2] += (targetColor[2] - state.currentTerrainColor[2]) * GAME_CONFIG.visuals.colorTransitionSpeed;
+
+            document.getElementById('priceDisplay').innerText = idrFormatter.format(currentPrice);
+            document.getElementById('convIDR').innerText = currentPrice.toFixed(2);
+            
+            // Nitro button style
+            const now = Date.now();
+            if (now < state.nitroCooldownEnd) {
+                nitroBtn.classList.add('cooldown');
+                const progress = 1 - ((state.nitroCooldownEnd - now) / GAME_CONFIG.nitro.cooldownMs);
+                nitroBtn.style.background = `conic-gradient(var(--nitro-color) ${progress * 360}deg, var(--card-border) ${progress * 360}deg)`;
+            } else {
+                nitroBtn.classList.remove('cooldown');
+                nitroBtn.style.background = 'var(--card-bg)';
+            }
+            if (now < state.nitroEndTime) nitroBtn.style.boxShadow = '0 0 15px var(--nitro-color)';
+            else nitroBtn.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+
+            return terrainY;
+        }
+
+        // ==========================================
+        // 8. CANVAS RENDERING ENGINE
+        // ==========================================
+        function render() {
+            ctx.fillStyle = canvasTheme.bg;
+            ctx.fillRect(0, 0, width, height);
+            
+            if (!car.body || state.isResetting) { requestAnimationFrame(render); return; }
+
+            const camCfg = GAME_CONFIG.camera;
+            const isNitroActive = Date.now() < state.nitroEndTime;
+            let targetZoom = camCfg.baseZoom - (state.holdDuration / 150) * camCfg.maxZoomOut; 
+            if (isNitroActive) targetZoom -= 0.15;
+
+            state.currentZoom += (targetZoom - state.currentZoom) * camCfg.zoomSpeed;
+
+            state.camX += (car.body.position.x - state.camX) * camCfg.panSpeed;
+            state.camY += (car.body.position.y - state.camY) * camCfg.panSpeed;
+
+            ctx.save();
+            ctx.translate(width / 2, height / 1.5);
+            ctx.scale(state.currentZoom, state.currentZoom);
+            ctx.translate(-state.camX, -state.camY);
+
+            const viewLeft = state.camX - (width / 2) / state.currentZoom;
+            const viewRight = state.camX + (width / 2) / state.currentZoom;
+            const viewTop = state.camY - (height / 1.5) / state.currentZoom;
+            const viewBottom = state.camY + (height / 3) / state.currentZoom;
+
+            ctx.strokeStyle = canvasTheme.grid; 
+            ctx.lineWidth = 1 / state.currentZoom;
+            ctx.font = `${14 / state.currentZoom}px 'Google Sans', Arial`;
+            ctx.fillStyle = canvasTheme.text; 
+            ctx.textAlign = "right";
+
+            const startGridX = Math.floor(viewLeft / 100) * 100;
+            const startGridY = Math.floor(viewTop / 100) * 100;
+            
+            ctx.beginPath();
+            for (let x = startGridX; x < viewRight; x += 100) { ctx.moveTo(x, viewTop); ctx.lineTo(x, viewBottom); }
+            for (let y = startGridY; y < viewBottom; y += 100) { 
+                ctx.moveTo(viewLeft, y); ctx.lineTo(viewRight, y); 
+                let priceAtY = state.baseRate - (y / GAME_CONFIG.pixelsPerIDR);
+                ctx.fillText(idrFormatter.format(priceAtY).replace('Rp',''), viewRight - 10, y - 5);
+            }
+            ctx.stroke();
+
+            const terrainY = updateUI();
+            const r = Math.round(state.currentTerrainColor[0]);
+            const g = Math.round(state.currentTerrainColor[1]);
+            const b = Math.round(state.currentTerrainColor[2]);
+            const dynamicColor = `rgb(${r},${g},${b})`;
+            const dynamicFillTop = `rgba(${r},${g},${b}, 0.25)`;
+            const dynamicFillBottom = `rgba(${r},${g},${b}, 0.0)`;
+
+            if (state.terrainChunks.length > 0) {
+                ctx.beginPath();
+                ctx.moveTo(state.terrainChunks[0].x, state.terrainChunks[0].y);
+                for (let i = 1; i < state.terrainChunks.length; i++) ctx.lineTo(state.terrainChunks[i].x, state.terrainChunks[i].y);
+                ctx.lineTo(state.terrainChunks[state.terrainChunks.length-1].x, viewBottom + 1000);
+                ctx.lineTo(state.terrainChunks[0].x, viewBottom + 1000);
+                ctx.closePath();
+
+                const gradient = ctx.createLinearGradient(0, viewTop, 0, viewBottom);
+                gradient.addColorStop(0, dynamicFillTop);
+                gradient.addColorStop(1, dynamicFillBottom);
+                ctx.fillStyle = gradient; 
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(state.terrainChunks[0].x, state.terrainChunks[0].y);
+                for (let i = 1; i < state.terrainChunks.length; i++) ctx.lineTo(state.terrainChunks[i].x, state.terrainChunks[i].y);
+                
+                ctx.shadowColor = dynamicColor; 
+                ctx.shadowBlur = 40; 
+                ctx.strokeStyle = dynamicColor; 
+                ctx.lineWidth = 5; 
+                ctx.lineJoin = 'round'; 
+                ctx.stroke();
+                ctx.shadowBlur = 0; 
+            }
+
+            ctx.setLineDash([5, 5]); 
+            ctx.strokeStyle = canvasTheme.text; 
+            ctx.lineWidth = 1 / state.currentZoom;
+            ctx.beginPath(); 
+            ctx.moveTo(car.body.position.x, car.body.position.y); 
+            ctx.lineTo(car.body.position.x, viewBottom); 
+            ctx.stroke();
+            ctx.beginPath(); 
+            ctx.moveTo(viewLeft, terrainY); 
+            ctx.lineTo(car.body.position.x, terrainY); 
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.beginPath(); 
+            ctx.arc(car.body.position.x, terrainY, 6, 0, Math.PI * 2);
+            ctx.fillStyle = dynamicColor; 
+            ctx.fill();
+            ctx.strokeStyle = canvasTheme.bg; 
+            ctx.lineWidth = 2; 
+            ctx.stroke();
+
+            // Dynamic helmet color
+            const targetCarColor = isNitroActive ? GAME_CONFIG.visuals.colorUp : GAME_CONFIG.visuals.colorDown;
+            state.currentCarColor[0] += (targetCarColor[0] - state.currentCarColor[0]) * GAME_CONFIG.visuals.colorTransitionSpeed;
+            state.currentCarColor[1] += (targetCarColor[1] - state.currentCarColor[1]) * GAME_CONFIG.visuals.colorTransitionSpeed;
+            state.currentCarColor[2] += (targetCarColor[2] - state.currentCarColor[2]) * GAME_CONFIG.visuals.colorTransitionSpeed;
+            const dynamicCarColor = `rgb(${Math.round(state.currentCarColor[0])}, ${Math.round(state.currentCarColor[1])}, ${Math.round(state.currentCarColor[2])})`;
+
+            const drawSuspension = (shockX, shockY, armX, armY, wheel) => {
+                const sX = car.body.position.x + Math.cos(car.body.angle)*shockX - Math.sin(car.body.angle)*shockY;
+                const sY = car.body.position.y + Math.sin(car.body.angle)*shockX + Math.cos(car.body.angle)*shockY;
+                const aX = car.body.position.x + Math.cos(car.body.angle)*armX - Math.sin(car.body.angle)*armY;
+                const aY = car.body.position.y + Math.sin(car.body.angle)*armX + Math.cos(car.body.angle)*armY;
+
+                ctx.beginPath(); 
+                ctx.moveTo(aX, aY); 
+                ctx.lineTo(wheel.position.x, wheel.position.y);
+                ctx.strokeStyle = '#5f6368'; 
+                ctx.lineWidth = 5; 
+                ctx.stroke();
+
+                const mX = (sX + wheel.position.x) / 2; 
+                const mY = (sY + wheel.position.y) / 2;
+                ctx.beginPath(); 
+                ctx.moveTo(sX, sY); 
+                ctx.lineTo(mX, mY);
+                ctx.strokeStyle = '#202124'; 
+                ctx.lineWidth = 7; 
+                ctx.lineCap = 'round'; 
+                ctx.stroke();
+                
+                ctx.beginPath(); 
+                ctx.moveTo(mX, mY); 
+                ctx.lineTo(wheel.position.x, wheel.position.y);
+                ctx.strokeStyle = '#bdc1c6'; 
+                ctx.lineWidth = 3; 
+                ctx.stroke();
+            };
+            
+            const wOffset = GAME_CONFIG.car.width/2 - 15;
+            drawSuspension(-wOffset, -10, -15, 20, car.wheelA);
+            drawSuspension(wOffset, -10, 15, 20, car.wheelB);
+
+            ctx.translate(car.body.position.x, car.body.position.y);
+            ctx.rotate(car.body.angle);
+            
+            if (isNitroActive) {
+                ctx.beginPath();
+                ctx.moveTo(-GAME_CONFIG.car.width/2, 0);
+                ctx.lineTo(-GAME_CONFIG.car.width/2 - 40 - Math.random()*30, -5 + Math.random()*10);
+                ctx.lineTo(-GAME_CONFIG.car.width/2 - 10, 5);
+                ctx.fillStyle = canvasTheme.nitroLine;
+                ctx.fill();
+            }
+
+            const antBaseX = -GAME_CONFIG.car.width/2 + 5; 
+            const antBaseY = -15;
+            const antLen = 55;
+            const antTipX = antBaseX + Math.sin(state.antennaAngle) * antLen;
+            const antTipY = antBaseY - Math.cos(state.antennaAngle) * antLen;
+            const antCtrlX = antBaseX + (antTipX - antBaseX)*0.5 + Math.sin(state.antennaAngle) * 30 * GAME_CONFIG.visuals.antennaFlex;
+            const antCtrlY = antBaseY + (antTipY - antBaseY)*0.5;
+            
+            ctx.beginPath(); 
+            ctx.moveTo(antBaseX, antBaseY);
+            ctx.quadraticCurveTo(antCtrlX, antCtrlY, antTipX, antTipY);
+            ctx.strokeStyle = '#9aa0a6'; 
+            ctx.lineWidth = 3; 
+            ctx.stroke();
+
+            const headX = Math.cos(-Math.PI/2 + state.headSway) * 45;
+            const headY = Math.sin(-Math.PI/2 + state.headSway) * 45;
+            const neckCtrlX = headX * 0.5 + Math.sin(state.headSway) * 20 * GAME_CONFIG.visuals.neckFlex;
+            const neckCtrlY = headY * 0.5;
+
+            ctx.beginPath(); 
+            ctx.moveTo(0, -10); 
+            ctx.quadraticCurveTo(neckCtrlX, neckCtrlY, headX, headY);
+            ctx.strokeStyle = '#202124'; 
+            ctx.lineWidth = 4; 
+            ctx.stroke();
+
+            ctx.save(); 
+            ctx.translate(headX, headY); 
+            ctx.rotate(state.headSway);
+            ctx.beginPath(); 
+            ctx.arc(0, 0, 12, 0, Math.PI*2); 
+            ctx.fillStyle = '#fce8b2'; 
+            ctx.fill(); 
+            
+            ctx.beginPath(); 
+            ctx.arc(0, 0, 13, Math.PI, Math.PI*2); 
+            ctx.fillStyle = dynamicCarColor; 
+            ctx.fill(); 
+            ctx.restore();
+
+            // Dynamic car body color
+            ctx.fillStyle = dynamicCarColor; 
+            const hw = GAME_CONFIG.car.width / 2;
+            ctx.beginPath(); 
+            ctx.roundRect ? ctx.roundRect(-hw, -15, GAME_CONFIG.car.width, 28, 6) : ctx.fillRect(-hw, -15, GAME_CONFIG.car.width, 28); 
+            ctx.fill();
+            
+            ctx.rotate(-car.body.angle);
+            ctx.translate(-car.body.position.x, -car.body.position.y);
+
+            const drawWheel = (wheel) => {
+                ctx.translate(wheel.position.x, wheel.position.y);
+                ctx.rotate(wheel.angle);
+                
+                const r = GAME_CONFIG.car.wheelRadius;
+                ctx.beginPath(); 
+                ctx.arc(0, 0, r, 0, Math.PI * 2);
+                ctx.fillStyle = '#202124'; 
+                ctx.fill();
+                ctx.lineWidth = 6; 
+                ctx.strokeStyle = '#5f6368'; 
+                ctx.stroke();
+                
+                ctx.beginPath(); 
+                ctx.moveTo(-r, 0); 
+                ctx.lineTo(r, 0); 
+                ctx.moveTo(0, -r); 
+                ctx.lineTo(0, r);
+                ctx.strokeStyle = '#3c4043'; 
+                ctx.lineWidth = 4; 
+                ctx.stroke();
+                
+                // Dynamic rim color
+                ctx.beginPath(); 
+                ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                ctx.fillStyle = dynamicCarColor; 
+                ctx.fill();
+                ctx.lineWidth = 2; 
+                ctx.strokeStyle = '#ffffff'; 
+                ctx.stroke();
+                
+                ctx.rotate(-wheel.angle);
+                ctx.translate(-wheel.position.x, -wheel.position.y);
+            };
+            drawWheel(car.wheelA); 
+            drawWheel(car.wheelB);
+
+            ctx.restore();
+            requestAnimationFrame(render);
+        }
+
+        // ==========================================
+        // 9. STARTUP SEQUENCE
+        // ==========================================
+        const startGame = () => {
+            // Matter validation
+            if (typeof Matter === 'undefined') {
+                document.getElementById('priceDisplay').innerText = "Butuh Koneksi";
+                document.getElementById('dateDisplay').innerText = "Matter.js gagal dimuat. Harap online sekali untuk menyimpan cache.";
+                const dot = document.getElementById('statusDot');
+                if (dot) dot.className = 'status-dot status-offline';
+                return;
+            }
+
+            // Matter initialization
+            Engine = Matter.Engine;
+            Runner = Matter.Runner;
+            Bodies = Matter.Bodies;
+            Body = Matter.Body;
+            Composite = Matter.Composite;
+            Constraint = Matter.Constraint;
+            Events = Matter.Events;
+
+            engine = Engine.create();
+            world = engine.world;
+            engine.gravity.y = GAME_CONFIG.gravity;
+
+            // Register events
+            Events.on(engine, 'collisionStart', (event) => {
+                if (state.noDeathMode || state.isResetting) return; 
+                event.pairs.forEach((pair) => {
+                    if ((pair.bodyA.label === 'head' && pair.bodyB.label === 'terrain') || 
+                        (pair.bodyB.label === 'head' && pair.bodyA.label === 'terrain')) dieAndReset();
+                });
+            });
+
+            Events.on(engine, 'beforeUpdate', () => {
+                if (!car.body || state.isResetting) return;
+                const cfg = GAME_CONFIG.engine;
+                
+                const now = Date.now();
+                const isNitroActive = now < state.nitroEndTime;
+                const torqueMultiplier = isNitroActive ? GAME_CONFIG.nitro.powerMultiplier : 1.0;
+                
+                const currentDriveTorque = cfg.driveTorque * torqueMultiplier;
+                const currentMaxSpeed = cfg.maxSpeed * (isNitroActive ? 1.5 : 1.0);
+
+                if (isNitroActive) {
+                    const nitroForce = {
+                        x: Math.cos(car.body.angle) * GAME_CONFIG.nitro.autoThrustForce,
+                        y: Math.sin(car.body.angle) * GAME_CONFIG.nitro.autoThrustForce
+                    };
+                    Body.applyForce(car.body, car.body.position, nitroForce);
+                    car.body.torque = -cfg.flipTorque * GAME_CONFIG.nitro.rotationalTorque;
+                }
+
+                // Driving inputs
+                if (state.input.gas) {
+                    if (car.wheelA.angularVelocity < currentMaxSpeed) car.wheelA.torque = currentDriveTorque;
+                    if (car.wheelB.angularVelocity < currentMaxSpeed) car.wheelB.torque = currentDriveTorque;
+                    if (!isNitroActive) car.body.torque = -cfg.flipTorque;
+                }
+                if (state.input.brake) {
+                    if (car.wheelA.angularVelocity > -currentMaxSpeed) car.wheelA.torque = -currentDriveTorque;
+                    if (car.wheelB.angularVelocity > -currentMaxSpeed) car.wheelB.torque = -currentDriveTorque;
+                    car.body.torque = cfg.flipTorque; 
+                }
+
+                if (state.input.gas || state.input.brake) {
+                    const df = { x: Math.sin(car.body.angle) * -cfg.downforce, y: Math.cos(car.body.angle) * cfg.downforce };
+                    Body.applyForce(car.body, car.body.position, df);
+                }
+
+                // Animation calculations
+                const carVelX = car.body.velocity.x;
+                const accel = carVelX - state.lastCarVelX;
+                state.lastCarVelX = carVelX;
+                
+                const targetAntenna = -accel * 0.4 - car.body.angularVelocity * 1.5;
+                state.antennaVel += (targetAntenna - state.antennaAngle) * 0.3;
+                state.antennaVel *= 0.85; 
+                state.antennaAngle += state.antennaVel;
+
+                const hX = car.body.position.x + Math.cos(car.body.angle - Math.PI/2) * 50;
+                const hY = car.body.position.y + Math.sin(car.body.angle - Math.PI/2) * 50;
+                Body.setPosition(car.head, { x: hX, y: hY });
+
+                let targetSway = 0;
+                if (state.input.gas || isNitroActive) targetSway = -0.8; 
+                if (state.input.brake) targetSway = 0.8;
+                state.headSway += (targetSway - state.headSway) * 0.2;
+
+                state.holdDuration = (state.input.gas || state.input.brake || isNitroActive) ? Math.min(state.holdDuration + 1, 150) : Math.max(state.holdDuration - 2, 0);
+
+                if (car.body.position.x > state.lastX - width * 2) generateTerrain(state.lastX + width * 2);
+                if (car.body.position.x < state.firstX + width * 2) generateTerrainBackward(state.firstX - width * 2);
+                
+                if (car.body.position.y > 50000 || car.body.position.y < -50000) dieAndReset();
+            });
+
+            state.firstX = -width; 
+            state.firstY = 0;
+            state.lastX = -width; 
+            state.lastY = 0;
+            state.firstPrice = state.baseRate; 
+            state.lastPrice = state.baseRate; 
+            state.minPrice = state.baseRate; 
+            state.maxPrice = state.baseRate;
+            
+            state.terrainChunks.push({ x: -width, y: 0, price: state.baseRate });
+            createTerrainSegment(-width, 0, width * 1.5, 0);
+            state.terrainChunks.push({ x: width * 1.5, y: 0, price: state.baseRate });
+            state.lastX = width * 1.5; 
+            state.lastY = 0;
+            
+            generateTerrain(width * 3); 
+            createCar(0, -800);
+            Runner.run(Runner.create(), engine); 
+            render();
+        };
+
+        // Start with fetch timeout
+        updateUIDate();
+        Promise.race([
+            fetchRate(),
+            new Promise(res => setTimeout(res, 2500))
+        ]).then(startGame).catch(startGame);
+    </script>
+</body>
+</html>
