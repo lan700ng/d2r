@@ -452,7 +452,7 @@
             if (now >= state.nitroCooldownEnd) {
                 state.nitroEndTime = now + GAME_CONFIG.nitro.durationMs;
                 state.nitroCooldownEnd = now + GAME_CONFIG.nitro.cooldownMs;
-                initAudio();
+                unlockAudio();
             }
         };
         nitroBtn.addEventListener('touchstart', activateNitro, {passive: false});
@@ -460,9 +460,23 @@
 
         updateCanvasTheme();
 
-        const initAudio = () => {
-            if (!state.audioStarted) { document.getElementById('bgm').play().catch(()=>{}); state.audioStarted = true; }
+        // Audio Unlocker (Resolves autoplay blocks on deployed HTTPS sites)
+        const unlockAudio = () => {
+            const bgm = document.getElementById('bgm');
+            if (bgm && !state.audioStarted) {
+                bgm.play().then(() => {
+                    state.audioStarted = true;
+                    window.removeEventListener('click', unlockAudio);
+                    window.removeEventListener('touchstart', unlockAudio);
+                    window.removeEventListener('keydown', unlockAudio);
+                }).catch(() => {
+                    // Fail silently, retry on next interaction
+                });
+            }
         };
+        window.addEventListener('click', unlockAudio);
+        window.addEventListener('touchstart', unlockAudio);
+        window.addEventListener('keydown', unlockAudio);
 
         // ==========================================
         // 4. API & TERRAIN GENERATOR
@@ -661,7 +675,7 @@
         // ==========================================
         const handleInput = (e, isDown) => {
             if (e.target && (e.target.closest('#toggles') || e.target.closest('#nitroBtn'))) return;
-            if (isDown) initAudio();
+            if (isDown) unlockAudio();
             
             if (e.type.includes('touch')) {
                 e.preventDefault();
